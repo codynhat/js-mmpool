@@ -61,9 +61,14 @@ ipfs.on('ready', async () => {
   var rewards = {}
 
   var rank = 1
-  let calculate_reward_f = get_calculate_reward_f(100*10)
-  var cur_reward = calculate_reward_f(rank)
+  let num_of_brackets = 100*10
+  var pot_size = num_of_brackets * bignum(1000000000) // 10^9 wei per bracket
+  let calculate_reward_f = get_calculate_reward_f(num_of_brackets)
+  var cur_reward = calculate_reward_f(pot_size)
+  var t1 = 0
+  var t2 = 0
   while (cur_reward >= 1) {
+    var s1 = new Date()
     max_score_of_best_entry = max_score_for_entry[entry_cid_with_best_bracket]
     rewards[entry_cid_with_best_bracket] = (rewards[entry_cid_with_best_bracket] || 0) + cur_reward
 
@@ -71,11 +76,25 @@ ipfs.on('ready', async () => {
     max_score_for_entry[entry_cid_with_best_bracket] = new_max_score
 
     rank += 1
-    cur_reward = calculate_reward_f(rank)
+    pot_size -= cur_reward
+    cur_reward = calculate_reward_f(pot_size)
+    t1 += new Date() - s1
 
     // Recalculate best entry
+    var s2 = new Date()
     entry_cid_with_best_bracket = get_entry_with_best_bracket(max_score_for_entry)
+    t2 += new Date() - s2
   }
+
+  console.log(`average t1: ${t1 / rank}`)
+  console.log(`average t2: ${t2 / rank}`)
+
+  console.log(rank)
+  console.log(rewards)
+  console.log(num_of_brackets * bignum(1000000000))
+  console.log(Object.keys(rewards).reduce((a, b) => {
+    return a + rewards[b]
+  }, 0))
 
   ipfs.stop(error => {
     if (error) {
@@ -87,21 +106,23 @@ ipfs.on('ready', async () => {
 
 })
 
+// Rewards
+
 function get_entry_with_best_bracket(max_score_for_entry) {
   return Object.keys(max_score_for_entry).reduce((a, b) => {
     return max_score_for_entry[a] > max_score_for_entry[b] ? a : b
   })
 }
 
-function get_calculate_reward_f(num_of_brackets) { // in gwei
-  let pot_size = num_of_brackets * 1 // 1 gwei per bracket
+function get_calculate_reward_f(num_of_brackets) { // in wei
   let e = Math.log(num_of_brackets) / Math.log(10) // log[10](num_of_brackets)
   let p = Math.pow(10, (2-e))
-  return function calculate_reward(rank) {
-    let f = Math.pow(p*(1.0-p), rank)
-    return f * pot_size
+  return function calculate_reward(pot_size) {
+    return Math.ceil(p * pot_size)
   }
 }
+
+// Scoring
 
 function max_score_of_entry(results, entry_cid, prev_max) {
   return new Promise((resolve, reject) => {
