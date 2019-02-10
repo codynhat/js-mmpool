@@ -44,13 +44,13 @@ ipfs.on('ready', async () => {
     "/ipfs/QmatfzDL5iuMVcGbVFgN67bV6gbobYswdoC3xMKyAAxq9S"
   ]
 
-  var max_score_for_entry = {}
+  var entry_max_scores = {}
 
   var entry_cid_with_best_bracket = null
   var max_score_of_best_entry = 0
   for (var entry_cid of entries) {
-    let max_score = await max_score_of_entry(results, entry_cid)
-    max_score_for_entry[entry_cid] = max_score
+    var max_score = await max_score_of_entry(results, entry_cid)
+    entry_max_scores[entry_cid] = max_score
 
     if(max_score > max_score_of_best_entry) {
       entry_cid_with_best_bracket = entry_cid
@@ -67,13 +67,14 @@ ipfs.on('ready', async () => {
   var cur_reward = calculate_reward_f(pot_size)
   var t1 = 0
   var t2 = 0
+
   while (cur_reward >= 1) {
     var s1 = new Date()
-    max_score_of_best_entry = max_score_for_entry[entry_cid_with_best_bracket]
+    max_score_of_best_entry = entry_max_scores[entry_cid_with_best_bracket]
     rewards[entry_cid_with_best_bracket] = (rewards[entry_cid_with_best_bracket] || 0) + cur_reward
 
     let new_max_score = await max_score_of_entry(results, entry_cid, max_score_of_best_entry)
-    max_score_for_entry[entry_cid_with_best_bracket] = new_max_score
+    entry_max_scores[entry_cid_with_best_bracket] = new_max_score
 
     rank += 1
     pot_size -= cur_reward
@@ -82,7 +83,7 @@ ipfs.on('ready', async () => {
 
     // Recalculate best entry
     var s2 = new Date()
-    entry_cid_with_best_bracket = get_entry_with_best_bracket(max_score_for_entry)
+    entry_cid_with_best_bracket = get_entry_with_best_bracket(entry_max_scores)
     t2 += new Date() - s2
   }
 
@@ -108,15 +109,14 @@ ipfs.on('ready', async () => {
 
 // Rewards
 
-function get_entry_with_best_bracket(max_score_for_entry) {
-  var ties = 0
-  return Object.keys(max_score_for_entry).reduce((a, b) => {
-    if (max_score_for_entry[a] == max_score_for_entry[b]) {
-      ties += 1
+function get_entry_with_best_bracket(entry_max_scores) {
+  return Object.keys(entry_max_scores).reduce((a, b) => {
+    if (entry_max_scores[a] == entry_max_scores[b]) {
+      return a > b ? a : b // Tiebreaker: string comparison of cid
+    } else {
+      return entry_max_scores[a] > entry_max_scores[b] ? a : b
     }
-    return max_score_for_entry[a] > max_score_for_entry[b] ? a : b
   })
-  console.log("TIES: " + ties)
 }
 
 function get_calculate_reward_f(num_of_brackets) { // in wei
@@ -141,8 +141,8 @@ function max_score_of_entry(results, entry_cid, prev_max) {
         for (var i = 0; i < data.length/8; i++) {
           var start = new Date()
 
-          let first_bracket = bignum.fromBuffer(data.slice(i, i+8))
-          let score = score_bracket(results, first_bracket)
+          let bracket = bignum.fromBuffer(data.slice(i, i+8))
+          let score = score_bracket(results, bracket)
 
           // t += new Date() - start
           if (prev_max) {
