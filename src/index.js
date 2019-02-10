@@ -109,9 +109,14 @@ ipfs.on('ready', async () => {
 // Rewards
 
 function get_entry_with_best_bracket(max_score_for_entry) {
+  var ties = 0
   return Object.keys(max_score_for_entry).reduce((a, b) => {
+    if (max_score_for_entry[a] == max_score_for_entry[b]) {
+      ties += 1
+    }
     return max_score_for_entry[a] > max_score_for_entry[b] ? a : b
   })
+  console.log("TIES: " + ties)
 }
 
 function get_calculate_reward_f(num_of_brackets) { // in wei
