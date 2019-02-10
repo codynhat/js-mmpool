@@ -1,0 +1,11 @@
+{
+  "name": "js-mmpool",
+  "version": "0.0.1",
+  "description": "",
+  "main": "src/index.js",
+  "dependencies": {
+    "bignum": "^0.13.0",
+    "ipfs": "^0.33.1",
+    "pull-stream": "^3.6.9"
+  }
+}
