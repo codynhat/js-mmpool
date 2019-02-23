@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "dependencies": {
     "bignum": "^0.13.0",
-    "ipfs": "^0.33.1",
+    "ipfs": "^0.34.4",
     "pull-stream": "^3.6.9"
   }
 }
